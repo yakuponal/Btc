@@ -1,0 +1,71 @@
+version: '3.8'
+name: btc_stack
+services:
+  instructions_api:
+    container_name: Btc.Instructions.Api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - '1111:80'
+    image: 'btc.instructions.api:dev'
+    build:
+      dockerfile: src/Btc.Instructions.Api/Dockerfile
+
+  notification_consumer:
+    container_name: Btc.Notification.Consumer
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - '1112:80'
+    image: 'btc.notification.consumer:dev'
+    build:
+      dockerfile: src/Btc.Notification.Consumer/Dockerfile
+    depends_on:
+      rabbitmqbroker:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+
+  postgresqldb:
+    container_name: Btc.Instructions.Db
+    environment:
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_USER=yakuponal
+      - POSTGRES_DB=btc
+    ports:
+      - "5432:5432"
+    image: postgres
+    restart: always
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  rabbitmqbroker:
+    container_name: Btc.Instructions.Rabbitmq
+    image: rabbitmq:3-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status"]
+      interval: 5s
+      timeout: 20s
+      retries: 5
+
+  mongo:
+    container_name: Btc.Notification.MongoDb
+    image: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_ROOT_DATABASE: btc
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test:  echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s

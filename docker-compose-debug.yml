@@ -1,0 +1,44 @@
+version: '3.8'
+name: btc_stack_debug
+services:
+  postgresqldb:
+    container_name: Btc.Instructions.Db
+    environment:
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_USER=yakuponal
+      - POSTGRES_DB=btc
+    ports:
+      - "5432:5432"
+    image: postgres
+    restart: always
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+     - btc_network
+
+  rabbitmqbroker:
+    container_name: Btc.Instructions.Rabbitmq
+    image: rabbitmq:3-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+     - btc_network
+
+  mongo:
+    container_name: Btc.Notification.MongoDb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_ROOT_DATABASE: btc
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+     - btc_network
+
+networks:
+  btc_network:
